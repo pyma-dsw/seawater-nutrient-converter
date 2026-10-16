@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深層海水營養鹽濃度換算器</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+    <!-- PWA Manifest Dynamic Injection -->
+    <link id="pwa-manifest" rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22%E6%B7%B1%E5%B1%A4%E6%B5%B7%E6%B0%B4%E7%87%9F%E9%A4%8a%E9%AB%90%E6%BF%83%E5%BA%A6%E6%8F%9B%E7%AE%97%E5%99%A8%22%2C%22short_name%22%3A%22%E6%B7%B1%E6%B5%B7%E7%87%9F%E9%A4%8a%E9%AB%90%E6%8F%9B%E7%AE%97%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8fafc%22%2C%22theme_color%22%3A%22%230ea5e9%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fplacehold.co%2F192x192%2F0ea5e9%2Fffffff%3Ftext%3DDeepSea%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fplacehold.co%2F512x512%2F0ea5e9%2Fffffff%3Ftext%3DDeepSea%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+    <meta name="theme-color" content="#0ea5e9">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-gradient-to-r from-cyan-700 to-blue-800 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2 rounded-xl backdrop-blur-sm">
+                    <i class="fa-solid fa-water text-2xl text-cyan-200"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">深層海水營養鹽濃度換算器</h1>
+                    <p class="text-xs text-cyan-200">海洋化學即時雙向計算工具 (PWA)</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openInstallGuide()" class="bg-white/20 hover:bg-white/30 text-white text-xs font-medium px-3 py-2 rounded-lg transition flex items-center space-x-1.5 backdrop-blur-sm">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="hidden sm:inline">安裝說明</span>
+                </button>
+                <button onclick="resetAll()" class="bg-cyan-900/40 hover:bg-cyan-900/60 text-cyan-100 text-xs font-medium px-3 py-2 rounded-lg transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>重設</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full">
+        
+        <!-- 分頁標籤列 -->
+        <div class="flex border-b border-slate-200 mb-6 space-x-2 overflow-x-auto pb-2">
+            <button onclick="switchTab('nitrate')" id="tab-btn-nitrate" class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition flex items-center space-x-2 bg-white text-cyan-700 border-b-2 border-cyan-600 shadow-sm whitespace-nowrap">
+                <i class="fa-solid fa-atom"></i>
+                <span>硝酸鹽 (NO<sub>3</sub><sup>-</sup>)</span>
+            </button>
+            <button onclick="switchTab('phosphate')" id="tab-btn-phosphate" class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition flex items-center space-x-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 whitespace-nowrap">
+                <i class="fa-solid fa-flask"></i>
+                <span>正磷酸鹽 (PO<sub>4</sub><sup>3-</sup>)</span>
+            </button>
+            <button onclick="switchTab('silicate')" id="tab-btn-silicate" class="tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition flex items-center space-x-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 whitespace-nowrap">
+                <i class="fa-solid fa-vial"></i>
+                <span>矽酸鹽 (SiO<sub>2</sub> / SiO<sub>4</sub><sup>4-</sup> / Si)</span>
+            </button>
+        </div>
+
+        <!-- 參數設定：海水密度 -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">計算參數：</span>
+                <label for="sea-density" class="text-sm text-slate-700 font-medium">海水密度 (&rho;)：</label>
+                <input type="number" id="sea-density" value="1.025" step="0.001" min="1.000" max="1.050" class="w-24 px-2.5 py-1.5 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none text-center font-mono" oninput="recalculateActiveTab()">
+                <span class="text-xs text-slate-500">g/cm<sup>3</sup> (標準值 1.025)</span>
+            </div>
+            <button onclick="toggleReferenceModal()" class="text-xs text-cyan-600 hover:text-cyan-800 font-medium flex items-center space-x-1 bg-cyan-50 hover:bg-cyan-100 px-3 py-1.5 rounded-lg transition">
+                <i class="fa-solid fa-book-open"></i>
+                <span>海洋學參考標準值與常數表</span>
+            </button>
+        </div>
+
+        <!-- 區塊 1：硝酸鹽 (Nitrate) -->
+        <div id="tab-nitrate" class="tab-content space-y-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">硝酸鹽濃度換算</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">常數基礎：N 原子量 = 14.0067 g/mol，NO<sub>3</sub><sup>-</sup> 分子量 = 62.0049 g/mol</p>
+                    </div>
+                    <span class="bg-cyan-50 text-cyan-700 text-xs font-semibold px-2.5 py-1 rounded-full">硝酸鹽系統</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- μM -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-cyan-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">&mu;M</label>
+                        <div class="relative">
+                            <input type="number" id="nitrate-um" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-cyan-500 focus:outline-none" oninput="convertNitrate('um')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">&mu;mol/L</span>
+                        </div>
+                    </div>
+                    <!-- μmol/kg -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-cyan-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">&mu;mol/kg</label>
+                        <div class="relative">
+                            <input type="number" id="nitrate-umolkg" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-cyan-500 focus:outline-none" oninput="convertNitrate('umolkg')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">&mu;mol/kg</span>
+                        </div>
+                    </div>
+                    <!-- NO3 ppb -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-cyan-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">NO<sub>3</sub><sup>-</sup> (&mu;g/L ; ppb)</label>
+                        <div class="relative">
+                            <input type="number" id="nitrate-no3-ppb" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-cyan-500 focus:outline-none" oninput="convertNitrate('no3_ppb')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppb</span>
+                        </div>
+                    </div>
+                    <!-- NO3 ppm -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-cyan-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">NO<sub>3</sub><sup>-</sup> (mg/L ; ppm)</label>
+                        <div class="relative">
+                            <input type="number" id="nitrate-no3-ppm" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-cyan-500 focus:outline-none" oninput="convertNitrate('no3_ppm')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppm</span>
+                        </div>
+                    </div>
+                    <!-- NO3-N ppb -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-cyan-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">NO<sub>3</sub><sup>-</sup>-N (&mu;g-N/L ; ppb)</label>
+                        <div class="relative">
+                            <input type="number" id="nitrate-n-ppb" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-cyan-500 focus:outline-none" oninput="convertNitrate('n_ppb')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppb</span>
+                        </div>
+                    </div>
+                    <!-- NO3-N ppm -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-cyan-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">NO<sub>3</sub><sup>-</sup>-N (mg-N/L ; ppm)</label>
+                        <div class="relative">
+                            <input type="number" id="nitrate-n-ppm" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-cyan-500 focus:outline-none" oninput="convertNitrate('n_ppm')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 區塊 2：正磷酸鹽 (Phosphate) -->
+        <div id="tab-phosphate" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">正磷酸鹽濃度換算</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">常數基礎：P 原子量 = 30.9738 g/mol，PO<sub>4</sub><sup>3-</sup> 分子量 = 94.9714 g/mol</p>
+                    </div>
+                    <span class="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">磷酸鹽系統</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- μM -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-blue-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">&mu;M</label>
+                        <div class="relative">
+                            <input type="number" id="phosphate-um" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="convertPhosphate('um')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">&mu;mol/L</span>
+                        </div>
+                    </div>
+                    <!-- μmol/kg -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-blue-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">&mu;mol/kg</label>
+                        <div class="relative">
+                            <input type="number" id="phosphate-umolkg" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="convertPhosphate('umolkg')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">&mu;mol/kg</span>
+                        </div>
+                    </div>
+                    <!-- PO4 ppb -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-blue-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">PO<sub>4</sub><sup>3-</sup> (&mu;g/L ; ppb)</label>
+                        <div class="relative">
+                            <input type="number" id="phosphate-po4-ppb" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="convertPhosphate('po4_ppb')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppb</span>
+                        </div>
+                    </div>
+                    <!-- PO4 ppm -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-blue-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">PO<sub>4</sub><sup>3-</sup> (mg/L ; ppm)</label>
+                        <div class="relative">
+                            <input type="number" id="phosphate-po4-ppm" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="convertPhosphate('po4_ppm')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppm</span>
+                        </div>
+                    </div>
+                    <!-- PO4-P ppb -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-blue-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">PO<sub>4</sub><sup>3-</sup>-P (&mu;g-P/L ; ppb)</label>
+                        <div class="relative">
+                            <input type="number" id="phosphate-p-ppb" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="convertPhosphate('p_ppb')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppb</span>
+                        </div>
+                    </div>
+                    <!-- PO4-P ppm -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-blue-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">PO<sub>4</sub><sup>3-</sup>-P (mg-P/L ; ppm)</label>
+                        <div class="relative">
+                            <input type="number" id="phosphate-p-ppm" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="convertPhosphate('p_ppm')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 區塊 3：矽酸鹽 (Silicate) -->
+        <div id="tab-silicate" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">矽酸鹽濃度換算</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">常數基礎：Si 原子量 = 28.085 g/mol，SiO<sub>2</sub> = 60.08 g/mol，SiO<sub>4</sub><sup>4-</sup> = 92.08 g/mol</p>
+                    </div>
+                    <span class="bg-teal-50 text-teal-700 text-xs font-semibold px-2.5 py-1 rounded-full">矽酸鹽系統</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- μM -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-teal-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">&mu;M (of Si)</label>
+                        <div class="relative">
+                            <input type="number" id="silicate-um" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-teal-500 focus:outline-none" oninput="convertSilicate('um')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">&mu;mol/L</span>
+                        </div>
+                    </div>
+                    <!-- μmol/kg -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-teal-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">&mu;mol/kg</label>
+                        <div class="relative">
+                            <input type="number" id="silicate-umolkg" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-teal-500 focus:outline-none" oninput="convertSilicate('umolkg')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">&mu;mol/kg</span>
+                        </div>
+                    </div>
+                    <!-- Si ppb -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-teal-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Si (&mu;g/L ; ppb)</label>
+                        <div class="relative">
+                            <input type="number" id="silicate-si-ppb" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-teal-500 focus:outline-none" oninput="convertSilicate('si_ppb')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppb</span>
+                        </div>
+                    </div>
+                    <!-- Si ppm -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-teal-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Si (mg/L ; ppm)</label>
+                        <div class="relative">
+                            <input type="number" id="silicate-si-ppm" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-teal-500 focus:outline-none" oninput="convertSilicate('si_ppm')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppm</span>
+                        </div>
+                    </div>
+                    <!-- SiO2 ppb -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-teal-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">SiO<sub>2</sub> (&mu;g/L ; ppb)</label>
+                        <div class="relative">
+                            <input type="number" id="silicate-sio2-ppb" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-teal-500 focus:outline-none" oninput="convertSilicate('sio2_ppb')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppb</span>
+                        </div>
+                    </div>
+                    <!-- SiO2 ppm -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-teal-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">SiO<sub>2</sub> (mg/L ; ppm)</label>
+                        <div class="relative">
+                            <input type="number" id="silicate-sio2-ppm" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-teal-500 focus:outline-none" oninput="convertSilicate('sio2_ppm')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppm</span>
+                        </div>
+                    </div>
+                    <!-- SiO4 ppb -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-teal-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">SiO<sub>4</sub><sup>4-</sup> (&mu;g/L ; ppb)</label>
+                        <div class="relative">
+                            <input type="number" id="silicate-sio4-ppb" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-teal-500 focus:outline-none" oninput="convertSilicate('sio4_ppb')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppb</span>
+                        </div>
+                    </div>
+                    <!-- SiO4 ppm -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-teal-400 transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">SiO<sub>4</sub><sup>4-</sup> (mg/L ; ppm)</label>
+                        <div class="relative">
+                            <input type="number" id="silicate-sio4-ppm" placeholder="請輸入數值" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-teal-500 focus:outline-none" oninput="convertSilicate('sio4_ppm')">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400">ppm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
+        <p>深層海水營養鹽濃度換算器 PWA &copy; 2026 | 支援離線運作與跨平台安裝</p>
+    </footer>
+
+    <!-- 安裝引導 Modal -->
+    <div id="install-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+                    <i class="fa-solid fa-mobile-screen-button text-cyan-600"></i>
+                    <span>如何安裝 PWA 應用程式</span>
+                </h3>
+                <button onclick="closeInstallGuide()" class="text-slate-400 hover:text-slate-600 text-lg px-2">&times;</button>
+            </div>
+            
+            <div class="space-y-4 text-sm text-slate-600">
+                <div class="p-3 bg-cyan-50 rounded-xl border border-cyan-100 text-cyan-800 text-xs">
+                    本應用程式支援 PWA (Progressive Web App)，您可以將其安裝至您的桌面或手機主畫面，安裝後即可完全<strong>離線運作</strong>！
+                </div>
+
+                <!-- Windows -->
+                <div class="border-b border-slate-100 pb-3">
+                    <h4 class="font-bold text-slate-700 flex items-center space-x-1.5 mb-1">
+                        <i class="fa-brands fa-windows text-blue-600"></i>
+                        <span>Windows 系統 (Chrome / Edge)</span>
+                    </h4>
+                    <p class="text-xs text-slate-500">1. 使用 Chrome 或 Edge 瀏覽器打開此網頁。<br>2. 點擊網址列右側的<strong>「安裝」</strong>圖示（或點擊右上角選單 $\rightarrow$「安裝深層海水營養鹽濃度換算器」）。<br>3. 確認安裝後，即可建立桌面捷徑並獨立視窗開啟。</p>
+                </div>
+
+                <!-- Mac -->
+                <div class="border-b border-slate-100 pb-3">
+                    <h4 class="font-bold text-slate-700 flex items-center space-x-1.5 mb-1">
+                        <i class="fa-brands fa-apple text-slate-800"></i>
+                        <span>macOS 系統 (Chrome / Safari)</span>
+                    </h4>
+                    <p class="text-xs text-slate-500"><strong>Chrome：</strong>點擊網址列右側安裝按鈕。<br><strong>Safari (macOS Sonoma 以上)：</strong>點擊頂部選單「檔案」$\rightarrow$「加入側邊欄或Dock」。</p>
+                </div>
+
+                <!-- Android -->
+                <div class="border-b border-slate-100 pb-3">
+                    <h4 class="font-bold text-slate-700 flex items-center space-x-1.5 mb-1">
+                        <i class="fa-brands fa-android text-emerald-600"></i>
+                        <span>Android 系統 (Chrome)</span>
+                    </h4>
+                    <p class="text-xs text-slate-500">1. 使用 Chrome 打開網頁。<br>2. 點擊右上角選單（三個點） $\rightarrow$<strong>「加到主畫面」</strong>或<strong>「安裝應用程式」</strong>。<br>3. 依照提示確認即可安裝至手機桌面上。</p>
+                </div>
+
+                <!-- iOS -->
+                <div>
+                    <h4 class="font-bold text-slate-700 flex items-center space-x-1.5 mb-1">
+                        <i class="fa-brands fa-app-store-ios text-blue-500"></i>
+                        <span>iOS 系統 (iPhone / iPad - Safari)</span>
+                    </h4>
+                    <p class="text-xs text-slate-500">1. 必須使用 <strong>Safari</strong> 瀏覽器打開此網頁。<br>2. 點擊下方工具列的<strong>「分享」</strong>按鈕（正方形帶向上箭頭）。<br>3. 在選單中向下滑動並點選<strong>「加入主畫面」</strong>。<br>4. 點擊右上角「新增」，App 圖示即會出現在 iPhone 桌面上。</p>
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button onclick="closeInstallGuide()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2.5 rounded-xl transition text-sm">我知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 參考標準值 Modal -->
+    <div id="reference-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+                    <i class="fa-solid fa-book-open text-cyan-600"></i>
+                    <span>海洋學參考標準值與換算常數</span>
+                </h3>
+                <button onclick="toggleReferenceModal()" class="text-slate-400 hover:text-slate-600 text-lg px-2">&times;</button>
+            </div>
+            
+            <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
+                <div>
+                    <h4 class="font-bold text-slate-700 mb-1">1. 原子量與分子量常數</h4>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>氮 (N)：</strong> 14.0067 g/mol | <strong>NO<sub>3</sub><sup>-</sup>：</strong> 62.0049 g/mol</li>
+                        <li><strong>磷 (P)：</strong> 30.9738 g/mol | <strong>PO<sub>4</sub><sup>3-</sup>：</strong> 94.9714 g/mol</li>
+                        <li><strong>矽 (Si)：</strong> 28.085 g/mol | <strong>SiO<sub>2</sub>：</strong> 60.08 g/mol | <strong>SiO<sub>4</sub><sup>4-</sup>：</strong> 92.08 g/mol</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-700 mb-1">2. 海水密度與克分子換算</h4>
+                    <p>在深層海水分析中，1 &mu;M 代表 1 &mu;mol/L。轉換為重量莫耳濃度 (&mu;mol/kg) 需除以海水密度 &rho; ($\approx 1.025\text{ g/cm}^3$)：<br>
+                    &mu;mol/kg = &mu;M / &rho;</p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-700 mb-1">3. 深層海水營養鹽背景值參考 (約略範圍)</h4>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>硝酸鹽 (NO<sub>3</sub><sup>-</sup>)：</strong> 20 - 40 &mu;M (深層水常顯富集)</li>
+                        <li><strong>正磷酸鹽 (PO<sub>4</sub><sup>3-</sup>)：</strong> 1.5 - 3 &mu;M</li>
+                        <li><strong>矽酸鹽 (SiO<sub>2</sub> / Si)：</strong> 30 - 60 &mu;M</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button onclick="toggleReferenceModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl transition text-sm">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯與 PWA 註冊 -->
+    <script>
+        let currentTab = 'nitrate';
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition flex items-center space-x-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 whitespace-nowrap";
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            activeBtn.className = "tab-btn px-5 py-2.5 rounded-t-xl font-semibold text-sm transition flex items-center space-x-2 bg-white text-cyan-700 border-b-2 border-cyan-600 shadow-sm whitespace-nowrap";
+        }
+
+        function getDensity() {
+            const val = parseFloat(document.getElementById('sea-density').value);
+            return (isNaN(val) || val <= 0) ? 1.025 : val;
+        }
+
+        function resetAll() {
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                if (input.id !== 'sea-density') input.value = '';
+            });
+        }
+
+        function openInstallGuide() {
+            document.getElementById('install-modal').classList.remove('hidden');
+        }
+        function closeInstallGuide() {
+            document.getElementById('install-modal').classList.add('hidden');
+        }
+        function toggleReferenceModal() {
+            const modal = document.getElementById('reference-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function recalculateActiveTab() {
+            if (currentTab === 'nitrate') {
+                const val = document.getElementById('nitrate-um').value;
+                if (val !== '') convertNitrate('um');
+            } else if (currentTab === 'phosphate') {
+                const val = document.getElementById('phosphate-um').value;
+                if (val !== '') convertPhosphate('um');
+            } else if (currentTab === 'silicate') {
+                const val = document.getElementById('silicate-um').value;
+                if (val !== '') convertSilicate('um');
+            }
+        }
+
+        // ==================== 1. 硝酸鹽換算引擎 ====================
+        const N_ATOMIC = 14.0067;
+        const NO3_MOL = 62.0049;
+
+        function convertNitrate(source) {
+            const density = getDensity();
+            let uM = 0;
+
+            const elUm = document.getElementById('nitrate-um');
+            const elUmolKg = document.getElementById('nitrate-umolkg');
+            const elNo3Ppb = document.getElementById('nitrate-no3-ppb');
+            const elNo3Ppm = document.getElementById('nitrate-no3-ppm');
+            const elNPpb = document.getElementById('nitrate-n-ppb');
+            const elNPpm = document.getElementById('nitrate-n-ppm');
+
+            try {
+                if (source === 'um') {
+                    if (elUm.value === '') { clearGroup(['umolkg', 'no3-ppb', 'no3-ppm', 'n-ppb', 'n-ppm'], 'nitrate-'); return; }
+                    uM = parseFloat(elUm.value);
+                } else if (source === 'umolkg') {
+                    if (elUmolKg.value === '') { clearGroup(['um', 'no3-ppb', 'no3-ppm', 'n-ppb', 'n-ppm'], 'nitrate-'); return; }
+                    uM = parseFloat(elUmolKg.value) * density;
+                } else if (source === 'no3_ppb') {
+                    if (elNo3Ppb.value === '') { clearGroup(['um', 'umolkg', 'no3-ppm', 'n-ppb', 'n-ppm'], 'nitrate-'); return; }
+                    uM = parseFloat(elNo3Ppb.value) / NO3_MOL;
+                } else if (source === 'no3_ppm') {
+                    if (elNo3Ppm.value === '') { clearGroup(['um', 'umolkg', 'no3-ppb', 'n-ppb', 'n-ppm'], 'nitrate-'); return; }
+                    uM = (parseFloat(elNo3Ppm.value) * 1000) / NO3_MOL;
+                } else if (source === 'n_ppb') {
+                    if (elNPpb.value === '') { clearGroup(['um', 'umolkg', 'no3-ppb', 'no3-ppm', 'n-ppm'], 'nitrate-'); return; }
+                    uM = parseFloat(elNPpb.value) / N_ATOMIC;
+                } else if (source === 'n_ppm') {
+                    if (elNPpm.value === '') { clearGroup(['um', 'umolkg', 'no3-ppb', 'no3-ppm', 'n-ppb'], 'nitrate-'); return; }
+                    uM = (parseFloat(elNPpm.value) * 1000) / N_ATOMIC;
+                }
+
+                if (isNaN(uM)) return;
+
+                const umolKg = uM / density;
+                const no3Ppb = uM * NO3_MOL;
+                const no3Ppm = no3Ppb / 1000;
+                const nPpb = uM * N_ATOMIC;
+                const nPpm = nPpb / 1000;
+
+                if (source !== 'um') elUm.value = formatNum(uM);
+                if (source !== 'umolkg') elUmolKg.value = formatNum(umolKg);
+                if (source !== 'no3_ppb') elNo3Ppb.value = formatNum(no3Ppb);
+                if (source !== 'no3_ppm') elNo3Ppm.value = formatNum(no3Ppm);
+                if (source !== 'n_ppb') elNPpb.value = formatNum(nPpb);
+                if (source !== 'n_ppm') elNPpm.value = formatNum(nPpm);
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // ==================== 2. 正磷酸鹽換算引擎 ====================
+        const P_ATOMIC = 30.9738;
+        const PO4_MOL = 94.9714;
+
+        function convertPhosphate(source) {
+            const density = getDensity();
+            let uM = 0;
+
+            const elUm = document.getElementById('phosphate-um');
+            const elUmolKg = document.getElementById('phosphate-umolkg');
+            const elPo4Ppb = document.getElementById('phosphate-po4-ppb');
+            const elPo4Ppm = document.getElementById('phosphate-po4-ppm');
+            const elPPpb = document.getElementById('phosphate-p-ppb');
+            const elPPpm = document.getElementById('phosphate-p-ppm');
+
+            try {
+                if (source === 'um') {
+                    if (elUm.value === '') { clearGroup(['umolkg', 'po4-ppb', 'po4-ppm', 'p-ppb', 'p-ppm'], 'phosphate-'); return; }
+                    uM = parseFloat(elUm.value);
+                } else if (source === 'umolkg') {
+                    if (elUmolKg.value === '') { clearGroup(['um', 'po4-ppb', 'po4-ppm', 'p-ppb', 'p-ppm'], 'phosphate-'); return; }
+                    uM = parseFloat(elUmolKg.value) * density;
+                } else if (source === 'po4_ppb') {
+                    if (elPo4Ppb.value === '') { clearGroup(['um', 'umolkg', 'po4-ppm', 'p-ppb', 'p-ppm'], 'phosphate-'); return; }
+                    uM = parseFloat(elPo4Ppb.value) / PO4_MOL;
+                } else if (source === 'po4_ppm') {
+                    if (elPo4Ppm.value === '') { clearGroup(['um', 'umolkg', 'po4-ppb', 'p-ppb', 'p-ppm'], 'phosphate-'); return; }
+                    uM = (parseFloat(elPo4Ppm.value) * 1000) / PO4_MOL;
+                } else if (source === 'p_ppb') {
+                    if (elPPpb.value === '') { clearGroup(['um', 'umolkg', 'po4-ppb', 'po4-ppm', 'p-ppm'], 'phosphate-'); return; }
+                    uM = parseFloat(elPPpb.value) / P_ATOMIC;
+                } else if (source === 'p_ppm') {
+                    if (elPPpm.value === '') { clearGroup(['um', 'umolkg', 'po4-ppb', 'po4-ppm', 'p-ppb'], 'phosphate-'); return; }
+                    uM = (parseFloat(elPPpm.value) * 1000) / P_ATOMIC;
+                }
+
+                if (isNaN(uM)) return;
+
+                const umolKg = uM / density;
+                const po4Ppb = uM * PO4_MOL;
+                const po4Ppm = po4Ppb / 1000;
+                const pPpb = uM * P_ATOMIC;
+                const pPpm = pPpb / 1000;
+
+                if (source !== 'um') elUm.value = formatNum(uM);
+                if (source !== 'umolkg') elUmolKg.value = formatNum(umolKg);
+                if (source !== 'po4_ppb') elPo4Ppb.value = formatNum(po4Ppb);
+                if (source !== 'po4_ppm') elPo4Ppm.value = formatNum(po4Ppm);
+                if (source !== 'p_ppb') elPPpb.value = formatNum(pPpb);
+                if (source !== 'p_ppm') elPPpm.value = formatNum(pPpm);
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // ==================== 3. 矽酸鹽換算引擎 ====================
+        const SI_ATOMIC = 28.085;
+        const SIO2_MOL = 60.08;
+        const SIO4_MOL = 92.08;
+
+        function convertSilicate(source) {
+            const density = getDensity();
+            let uM = 0;
+
+            const elUm = document.getElementById('silicate-um');
+            const elUmolKg = document.getElementById('silicate-umolkg');
+            const elSiPpb = document.getElementById('silicate-si-ppb');
+            const elSiPpm = document.getElementById('silicate-si-ppm');
+            const elSiO2Ppb = document.getElementById('silicate-sio2-ppb');
+            const elSiO2Ppm = document.getElementById('silicate-sio2-ppm');
+            const elSiO4Ppb = document.getElementById('silicate-sio4-ppb');
+            const elSiO4Ppm = document.getElementById('silicate-sio4-ppm');
+
+            try {
+                if (source === 'um') {
+                    if (elUm.value === '') { clearGroup(['umolkg', 'si-ppb', 'si-ppm', 'sio2-ppb', 'sio2-ppm', 'sio4-ppb', 'sio4-ppm'], 'silicate-'); return; }
+                    uM = parseFloat(elUm.value);
+                } else if (source === 'umolkg') {
+                    if (elUmolKg.value === '') { clearGroup(['um', 'si-ppb', 'si-ppm', 'sio2-ppb', 'sio2-ppm', 'sio4-ppb', 'sio4-ppm'], 'silicate-'); return; }
+                    uM = parseFloat(elUmolKg.value) * density;
+                } else if (source === 'si_ppb') {
+                    if (elSiPpb.value === '') { clearGroup(['um', 'umolkg', 'si-ppm', 'sio2-ppb', 'sio2-ppm', 'sio4-ppb', 'sio4-ppm'], 'silicate-'); return; }
+                    uM = parseFloat(elSiPpb.value) / SI_ATOMIC;
+                } else if (source === 'si_ppm') {
+                    if (elSiPpm.value === '') { clearGroup(['um', 'umolkg', 'si-ppb', 'sio2-ppb', 'sio2-ppm', 'sio4-ppb', 'sio4-ppm'], 'silicate-'); return; }
+                    uM = (parseFloat(elSiPpm.value) * 1000) / SI_ATOMIC;
+                } else if (source === 'sio2_ppb') {
+                    if (elSiO2Ppb.value === '') { clearGroup(['um', 'umolkg', 'si-ppb', 'si-ppm', 'sio2-ppm', 'sio4-ppb', 'sio4-ppm'], 'silicate-'); return; }
+                    uM = parseFloat(elSiO2Ppb.value) / SIO2_MOL;
+                } else if (source === 'sio2_ppm') {
+                    if (elSiO2Ppm.value === '') { clearGroup(['um', 'umolkg', 'si-ppb', 'si-ppm', 'sio2-ppb', 'sio4-ppb', 'sio4-ppm'], 'silicate-'); return; }
+                    uM = (parseFloat(elSiO2Ppm.value) * 1000) / SIO2_MOL;
+                } else if (source === 'sio4_ppb') {
+                    if (elSiO4Ppb.value === '') { clearGroup(['um', 'umolkg', 'si-ppb', 'si-ppm', 'sio2-ppb', 'sio2-ppm', 'sio4-ppm'], 'silicate-'); return; }
+                    uM = parseFloat(elSiO4Ppb.value) / SIO4_MOL;
+                } else if (source === 'sio4_ppm') {
+                    if (elSiO4Ppm.value === '') { clearGroup(['um', 'umolkg', 'si-ppb', 'si-ppm', 'sio2-ppb', 'sio2-ppm', 'sio4-ppb'], 'silicate-'); return; }
+                    uM = (parseFloat(elSiO4Ppm.value) * 1000) / SIO4_MOL;
+                }
+
+                if (isNaN(uM)) return;
+
+                const umolKg = uM / density;
+                const siPpb = uM * SI_ATOMIC;
+                const siPpm = siPpb / 1000;
+                const sio2Ppb = uM * SIO2_MOL;
+                const sio2Ppm = sio2Ppb / 1000;
+                const sio4Ppb = uM * SIO4_MOL;
+                const sio4Ppm = sio4Ppb / 1000;
+
+                if (source !== 'um') elUm.value = formatNum(uM);
+                if (source !== 'umolkg') elUmolKg.value = formatNum(umolKg);
+                if (source !== 'si_ppb') elSiPpb.value = formatNum(siPpb);
+                if (source !== 'si_ppm') elSiPpm.value = formatNum(siPpm);
+                if (source !== 'sio2_ppb') elSiO2Ppb.value = formatNum(sio2Ppb);
+                if (source !== 'sio2_ppm') elSiO2Ppm.value = formatNum(sio2Ppm);
+                if (source !== 'sio4_ppb') elSiO4Ppb.value = formatNum(sio4Ppb);
+                if (source !== 'sio4_ppm') elSiO4Ppm.value = formatNum(sio4Ppm);
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function clearGroup(fields, prefix) {
+            fields.forEach(f => {
+                const el = document.getElementById(prefix + f);
+                if (el) el.value = '';
+            });
+        }
+
+        function formatNum(num) {
+            if (num === 0) return 0;
+            if (Math.abs(num) < 0.0001 || Math.abs(num) >= 100000) {
+                return num.toExponential(4);
+            }
+            return parseFloat(num.toFixed(5));
+        }
+
+        // ==================== PWA Service Worker 註冊 ====================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `
+                    const CACHE_NAME = 'deepsea-calc-v3';
+                    const urlsToCache = ['./', './index.html'];
+                    self.addEventListener('install', event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+                        );
+                    });
+                    self.addEventListener('fetch', event => {
+                        event.respondWith(
+                            caches.match(event.request).then(response => response || fetch(event.request))
+                        );
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'text/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl)
+                    .then(() => console.log('PWA Service Worker 註冊成功'))
+                    .catch(err => console.log('PWA Service Worker 註冊失敗', err));
+            });
+        }
+    </script>
+</body>
+</html>
